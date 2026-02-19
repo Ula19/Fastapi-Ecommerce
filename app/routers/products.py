@@ -56,15 +56,12 @@ async def product_by_category(category_slug: str, db: Annotated[Session, Depends
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Категория не найдена")
     subcategories = db.scalars(select(Category).where(Category.parent_id == category.id)).all()
-    subcategories.append(category)
-    products = []
-    for cat in subcategories:
-        product = db.scalar(select(Product).where(Product.category_id == cat.id, Product.is_active == True,
-                                                  Product.stock > 0))
-        if product is None:
-            continue
-        products.append(product)
-    return products
+    categories_and_subcategories = [category.id] + [i.id for i in subcategories]
+    products_category = db.scalars(
+        select(Product).where(Product.category_id.in_(categories_and_subcategories),
+                              Product.is_active == True, Product.stock > 0)
+    ).all()
+    return products_category
 
 
 @router.get('/detail/{product_slug}')
@@ -73,14 +70,16 @@ async def product_detail(product_slug: str, db: Annotated[Session, Depends(get_d
     Метод получения детальной информации о товаре
     """
 
-    product = db.scalar(select(Product).where(Product.slug == product_slug))
+    product = db.scalar(
+        select(Product).where(Product.slug == product_slug, Product.is_active == True, Product.stock > 0)
+    )
     if product is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Нет товара")
     return product
 
 
 @router.put('/detail/{product_slug}')
-async def update_product(product_slug: str, db: Annotated[Session, Depends(get_db)], update_product: CreateProduct):
+async def update_product(product_slug: str, db: Annotated[Session, Depends(get_db)], update_product_model: CreateProduct):
     """
     Метод изменения товара
     """
@@ -90,16 +89,17 @@ async def update_product(product_slug: str, db: Annotated[Session, Depends(get_d
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Товар не найден")
     db.execute(update(Product).where(Product.slug == product_slug).values(
-        name=update_product.name,
-        description=update_product.description,
-        price=update_product.price,
-        image_url=update_product.image_url,
-        stock=update_product.stock,
-        category_id=update_product.category
+        name=update_product_model.name,
+        description=update_product_model.description,
+        price=update_product_model.price,
+        image_url=update_product_model.image_url,
+        stock=update_product_model.stock,
+        category_id=update_product_model.category,
+        slug=slugify(update_product_model.name),
     ))
     db.commit()
     return {
-        "status_code": status.HTTP_201_CREATED,
+        "status_code": status.HTTP_200_OK,
         "transaction": "Обновление категории прошло успешно"
     }
 
