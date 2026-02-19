@@ -79,7 +79,7 @@ async def product_detail(db: Annotated[AsyncSession, Depends(get_db)], product_s
 
 
 @router.put('/detail/{product_slug}')
-async def update_product(db: Annotated[AsyncSession, Depends(get_db), product_slug: str], update_product_model: CreateProduct):
+async def update_product(db: Annotated[AsyncSession, Depends(get_db)], product_slug: str, update_product_model: CreateProduct):
     """
     Метод изменения товара
     """
