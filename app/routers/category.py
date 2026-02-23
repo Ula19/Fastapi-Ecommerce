@@ -7,23 +7,24 @@ from typing import Annotated
 from app.models import *
 from app.backend.db_depends import get_db
 from app.schemas import CreateCategory
+from app.routers.permissions import get_current_user
 
 
 router = APIRouter(prefix='/category', tags=['category'])
 
 
-@router.get('/all_categories')
-async def get_all_categories(db: Annotated[AsyncSession, Depends(get_db)]):
-    """
-    Метод получения всех категорий
-    """
+async def admin_required(current_user: Annotated[dict, Depends(get_current_user)]):
+    if not current_user.get("is_admin"):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Для этого вы должны быть администратором"
+        )
+    return current_user
 
-    categories = await db.scalars(select(Category).where(Category.is_active == True))
-    return categories.all()
 
-
-@router.post('/create', status_code=status.HTTP_201_CREATED)
-async def create_category(db: Annotated[AsyncSession, Depends(get_db)], create_category: CreateCategory):
+@router.post('/create', status_code=status.HTTP_201_CREATED, dependencies=[Depends(admin_required)])
+async def create_category(db: Annotated[AsyncSession, Depends(get_db)],
+                          create_category: CreateCategory):
     """
     Метод создания категории
     """
@@ -40,13 +41,24 @@ async def create_category(db: Annotated[AsyncSession, Depends(get_db)], create_c
     }
 
 
+@router.get('/all_categories')
+async def get_all_categories(db: Annotated[AsyncSession, Depends(get_db)]):
+    """
+    Метод получения всех категорий
+    """
 
-@router.put('/update_category')
-async def update_category(db: Annotated[AsyncSession, Depends(get_db)], category_id: int, update_category: CreateCategory):
+    categories = await db.scalars(select(Category).where(Category.is_active == True))
+    return categories.all()
+
+
+
+@router.put('/update_category', dependencies=[Depends(admin_required)])
+async def update_category(db: Annotated[AsyncSession, Depends(get_db)],
+                          category_id: int,
+                          update_category: CreateCategory):
     """
     Метод изменения категории
     """
-
     category = await db.scalar(select(Category).where(Category.id == category_id))
     if category is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -64,12 +76,12 @@ async def update_category(db: Annotated[AsyncSession, Depends(get_db)], category
 
 
 
-@router.delete('/delete')
-async def delete_category(db: Annotated[AsyncSession, Depends(get_db)], category_id: int):
+@router.delete('/delete', dependencies=[Depends(admin_required)])
+async def delete_category(db: Annotated[AsyncSession, Depends(get_db)],
+                          category_id: int):
     """
     Метод удаления категории
     """
-
     category = await db.scalar(select(Category).where(Category.id == category_id))
     if category is None:
        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
