@@ -145,7 +145,7 @@ async def delete_product(db: Annotated[AsyncSession, Depends(get_db)],
     if product_delete is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail='There is no product found'
+            detail='Товар не найден'
         )
     if get_user.get('is_supplier') or get_user.get('is_admin'):
         if get_user.get('id') == product_delete.supplier_id or get_user.get('is_admin'):
@@ -153,15 +153,15 @@ async def delete_product(db: Annotated[AsyncSession, Depends(get_db)],
             await db.commit()
             return {
                 'status_code': status.HTTP_200_OK,
-                'transaction': 'Product delete is successful'
+                'transaction': 'Удаление продукта прошло успешно'
             }
         else:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail='You are not authorized to use this method'
+                detail='У вас нет прав на использование этого метода'
             )
     else:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail='You are not authorized to use this method'
+            detail='У вас нет прав на использование этого метода'
         )
