@@ -31,10 +31,18 @@ class CreateCategory(BaseModel):
 
 class CreateUser(BaseModel):
     """
-    Pydantic схему для создания пользователей
+    Pydantic схема для создания пользователей
     """
     first_name: str
     last_name: str
     username: str
     email: str
     password: str
+
+
+class CreateReviewAndRating(BaseModel):
+    """
+    Pydantic схема для создания отзыва и рейтинга
+    """
+    comment: str
+    grade: int
